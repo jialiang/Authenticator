@@ -216,8 +216,10 @@ export default Vue.extend({
               return;
             }
 
-            if (this.$store.state.menu.useAutofill) {
-              await insertContentScript();
+            if (
+              this.$store.state.menu.useAutofill &&
+              (await insertContentScript())
+            ) {
               const tab = await getCurrentTab();
               if (tab && tab.id) {
                 chrome.tabs.sendMessage(tab.id, {
@@ -289,9 +291,16 @@ function getQrUrl(entry: OTPEntry) {
   return qr.createDataURL(5);
 }
 
+// Browsers block extensions on some pages (Firefox on its own account and
+// add-on sites, for example), so injecting can fail. Report that instead of
+// throwing, so the caller can still copy the code.
 async function insertContentScript() {
-  let tab = await getCurrentTab();
-  if (okToInjectContentScript(tab)) {
+  const tab = await getCurrentTab();
+  if (!okToInjectContentScript(tab)) {
+    return false;
+  }
+
+  try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ["/dist/content.js"],
@@ -300,6 +309,11 @@ async function insertContentScript() {
       target: { tabId: tab.id },
       files: ["/css/content.css"],
     });
+  } catch (error) {
+    console.warn("Could not inject the autofill script:", error);
+    return false;
   }
+
+  return true;
 }
 </script>
