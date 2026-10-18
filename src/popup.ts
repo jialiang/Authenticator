@@ -60,6 +60,11 @@ async function init() {
     },
   });
 
+  store.watch(
+    (state) => (state as { style: StyleState }).style.style.isEditing,
+    (isEditing) => store.commit("accounts/setOrderFrozen", isEditing)
+  );
+
   // Render
   const instance = new Vue({
     render: (h) => h(Popup),

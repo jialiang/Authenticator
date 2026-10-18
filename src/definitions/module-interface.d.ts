@@ -60,6 +60,7 @@ interface StyleState {
 
 interface AccountsState {
   entries: OTPEntryInterface[];
+  frozenOrder: string[] | null;
   defaultEncryption: string;
   encryption: Map<string, EncryptionInterface>;
   OTPType: number;

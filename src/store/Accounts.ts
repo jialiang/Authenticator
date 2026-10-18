@@ -30,6 +30,7 @@ export class Accounts implements Module {
     return {
       state: {
         entries,
+        frozenOrder: null,
         encryption,
         defaultEncryption: cachedKeyInfo.cachedKeyId,
         OTPType,
@@ -69,7 +70,13 @@ export class Accounts implements Module {
           return false;
         },
         entries(state: AccountsState) {
-          const sortedEntries = [...state.entries].sort(compareEntryNames);
+          const frozenOrder = state.frozenOrder;
+          const compareEntries = frozenOrder
+            ? (a: OTPEntryInterface, b: OTPEntryInterface) =>
+                frozenOrder.indexOf(a.hash) - frozenOrder.indexOf(b.hash)
+            : compareEntryNames;
+
+          const sortedEntries = [...state.entries].sort(compareEntries);
           const pinnedEntries = sortedEntries.filter((entry) => entry.pinned);
           const unpinnedEntries = sortedEntries.filter(
             (entry) => !entry.pinned
@@ -137,6 +144,17 @@ export class Accounts implements Module {
         },
         loadCodes(state: AccountsState, newCodes: OTPEntryInterface[]) {
           state.entries = newCodes;
+        },
+        // Edit mode renames entries on every keystroke, which would re-sort
+        // the list under the cursor. Freezing snapshots the current order.
+        // Entries added while frozen aren't in the snapshot, so they sort
+        // first (their index is -1).
+        setOrderFrozen(state: AccountsState, isFrozen: boolean) {
+          state.frozenOrder = isFrozen
+            ? [...state.entries]
+                .sort(compareEntryNames)
+                .map((entry) => entry.hash)
+            : null;
         },
         pinEntry(state: AccountsState, entry: OTPEntryInterface) {
           state.entries[entry.index].pinned = !entry.pinned;
