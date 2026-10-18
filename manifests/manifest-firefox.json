@@ -7,8 +7,11 @@
   "description": "__MSG_extDesc__",
   "browser_specific_settings": {
     "gecko": {
-      "id": "authenticator@mymindstorm",
-      "strict_min_version": "126.0"
+      "id": "authenticator-xl@local",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   },
   "icons": {
