@@ -43,8 +43,14 @@
     "page": "view/options.html",
     "open_in_tab": false
   },
-  "permissions": ["activeTab", "storage", "identity", "alarms", "scripting"],
-  "optional_permissions": ["clipboardWrite"],
+  "permissions": [
+    "activeTab",
+    "storage",
+    "identity",
+    "alarms",
+    "scripting",
+    "clipboardWrite"
+  ],
   "host_permissions": [
     "https://www.google.com/",
     "https://*.dropboxapi.com/*",

@@ -52,10 +52,10 @@
         "storage",
         "identity",
         "alarms",
-        "scripting"
+        "scripting",
+        "clipboardWrite"
     ],
     "optional_permissions": [
-        "clipboardWrite",
         "contextMenus"
     ],
     "optional_host_permissions": [

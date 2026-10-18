@@ -205,45 +205,32 @@ export default Vue.extend({
         return;
       }
 
-      chrome.permissions.request(
-        { permissions: ["clipboardWrite"] },
-        async (granted) => {
-          if (granted) {
-            const codeClipboard = document.getElementById(
-              "codeClipboard"
-            ) as HTMLInputElement;
-            if (!codeClipboard) {
-              return;
-            }
+      const codeClipboard = document.getElementById(
+        "codeClipboard"
+      ) as HTMLInputElement;
+      if (!codeClipboard) {
+        return;
+      }
 
-            if (
-              this.$store.state.menu.useAutofill &&
-              (await insertContentScript())
-            ) {
-              const tab = await getCurrentTab();
-              if (tab && tab.id) {
-                chrome.tabs.sendMessage(tab.id, {
-                  action: "pastecode",
-                  code: entry.code,
-                });
-              }
-            }
-
-            const lastActiveElement = document.activeElement as HTMLElement;
-            codeClipboard.value = entry.code;
-            codeClipboard.focus();
-            codeClipboard.select();
-            document.execCommand("Copy");
-            lastActiveElement.focus();
-            this.$store.dispatch(
-              "notification/ephermalMessage",
-              this.i18n.copied
-            );
-          }
+      if (this.$store.state.menu.useAutofill && (await insertContentScript())) {
+        const tab = await getCurrentTab();
+        if (tab && tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            action: "pastecode",
+            code: entry.code,
+          });
         }
-      );
+      }
 
-      return;
+      // Copying after the awaits above, once the click no longer counts as
+      // recent, relies on the clipboardWrite permission in the manifest
+      const lastActiveElement = document.activeElement as HTMLElement;
+      codeClipboard.value = entry.code;
+      codeClipboard.focus();
+      codeClipboard.select();
+      document.execCommand("Copy");
+      lastActiveElement.focus();
+      this.$store.dispatch("notification/ephermalMessage", this.i18n.copied);
     },
   },
   components: {

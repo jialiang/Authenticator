@@ -30,7 +30,7 @@ const permissions: Permission[] = [
   {
     id: "clipboardWrite",
     description: chrome.i18n.getMessage("permission_clipboard_write"),
-    revocable: true,
+    revocable: false,
   },
   {
     id: "contextMenus",
