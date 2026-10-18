@@ -24,8 +24,6 @@
     </div>
     <!-- Entries -->
     <div
-      v-dragula
-      drake="entryDrake"
       v-on:keydown.down="focusNextEntry()"
       v-on:keydown.right="focusNextEntry()"
       v-on:keydown.up="focusLastEntry()"
@@ -55,7 +53,6 @@
 import Vue from "vue";
 import { mapState, mapGetters } from "vuex";
 import { OTPEntry } from "../../models/otp";
-import { EntryStorage } from "../../models/storage";
 
 import EntryComponent from "./EntryComponent.vue";
 
@@ -165,36 +162,6 @@ export default Vue.extend({
         .querySelector<HTMLLinkElement>(`.entry:nth-child(${lastIndex + 1})`)
         ?.focus();
     },
-  },
-  created() {
-    // Don't drag if !isEditing
-    this.$dragula.$service.options("entryDrake", {
-      invalid: () => {
-        if (!this.$store.state.style.style.isEditing) {
-          return true;
-        } else {
-          return false;
-        }
-      },
-    });
-
-    // Update entry index if dragged
-    this.$dragula.$service.eventBus.$on(
-      "dropModel",
-      async ({
-        dragIndex,
-        dropIndex,
-      }: {
-        dragIndex: number;
-        dropIndex: number;
-      }) => {
-        this.$store.commit("accounts/moveCode", {
-          from: dragIndex,
-          to: dropIndex,
-        });
-        await EntryStorage.set(this.$store.state.accounts.entries);
-      }
-    );
   },
   components: {
     EntryComponent,

@@ -79,9 +79,6 @@
     <div class="pin" v-on:click.stop="pin(entry)">
       <IconPin />
     </div>
-    <div class="movehandle">
-      <IconBars />
-    </div>
   </a>
 </template>
 <script lang="ts">
@@ -95,7 +92,6 @@ import { getCurrentTab, okToInjectContentScript } from "../../utils";
 import IconMinusCircle from "../../../svg/minus-circle.svg";
 import IconRedo from "../../../svg/redo.svg";
 import IconQr from "../../../svg/qrcode.svg";
-import IconBars from "../../../svg/bars.svg";
 import IconPin from "../../../svg/pin.svg";
 
 const computedPrototype = [
@@ -252,7 +248,6 @@ export default Vue.extend({
     IconMinusCircle,
     IconRedo,
     IconQr,
-    IconBars,
     IconPin,
   },
 });

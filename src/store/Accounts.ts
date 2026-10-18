@@ -69,8 +69,9 @@ export class Accounts implements Module {
           return false;
         },
         entries(state: AccountsState) {
-          const pinnedEntries = state.entries.filter((entry) => entry.pinned);
-          const unpinnedEntries = state.entries.filter(
+          const sortedEntries = [...state.entries].sort(compareEntryNames);
+          const pinnedEntries = sortedEntries.filter((entry) => entry.pinned);
+          const unpinnedEntries = sortedEntries.filter(
             (entry) => !entry.pinned
           );
           return [...pinnedEntries, ...unpinnedEntries];
@@ -136,19 +137,6 @@ export class Accounts implements Module {
         },
         loadCodes(state: AccountsState, newCodes: OTPEntryInterface[]) {
           state.entries = newCodes;
-        },
-        moveCode(state: AccountsState, opts: { from: number; to: number }) {
-          state.entries.splice(
-            opts.to,
-            0,
-            state.entries.splice(opts.from, 1)[0]
-          );
-
-          for (let i = 0; i < state.entries.length; i++) {
-            if (state.entries[i].index !== i) {
-              state.entries[i].index = i;
-            }
-          }
         },
         pinEntry(state: AccountsState, entry: OTPEntryInterface) {
           state.entries[entry.index].pinned = !entry.pinned;
@@ -688,6 +676,24 @@ export class Accounts implements Module {
     const otpEntries = await EntryStorage.get();
     return otpEntries;
   }
+}
+
+// Case-insensitive, with digits compared as numbers ("Site 2" before "Site 10")
+const nameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+// An issuer may end in "::host" for site matching. The popup hides that part,
+// so sort on the visible name only.
+function compareEntryNames(a: OTPEntryInterface, b: OTPEntryInterface) {
+  const issuerA = a.issuer.split("::")[0];
+  const issuerB = b.issuer.split("::")[0];
+
+  return (
+    nameCollator.compare(issuerA, issuerB) ||
+    nameCollator.compare(a.account, b.account)
+  );
 }
 
 async function genHash(value: string) {
