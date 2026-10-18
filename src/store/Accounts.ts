@@ -1,4 +1,5 @@
 import { EntryStorage, BrowserStorage, isOldKey } from "../models/storage";
+import { storeEntriesSorted } from "../models/entry-order";
 import { Encryption } from "../models/encryption";
 import * as CryptoJS from "crypto-js";
 import { OTPType, OTPAlgorithm } from "../models/otp";
@@ -24,6 +25,7 @@ export class Accounts implements Module {
     }
     const shouldShowPassphrase = await EntryStorage.hasEncryptionKey();
     const entries = shouldShowPassphrase ? [] : await this.getEntries();
+    await storeEntriesSorted(entries);
 
     await UserSettings.updateItems();
 
@@ -71,14 +73,15 @@ export class Accounts implements Module {
         },
         entries(state: AccountsState) {
           const frozenOrder = state.frozenOrder;
-          const compareEntries = frozenOrder
-            ? (a: OTPEntryInterface, b: OTPEntryInterface) =>
-                frozenOrder.indexOf(a.hash) - frozenOrder.indexOf(b.hash)
-            : compareEntryNames;
+          const orderedEntries = frozenOrder
+            ? [...state.entries].sort(
+                (a, b) =>
+                  frozenOrder.indexOf(a.hash) - frozenOrder.indexOf(b.hash)
+              )
+            : state.entries;
 
-          const sortedEntries = [...state.entries].sort(compareEntries);
-          const pinnedEntries = sortedEntries.filter((entry) => entry.pinned);
-          const unpinnedEntries = sortedEntries.filter(
+          const pinnedEntries = orderedEntries.filter((entry) => entry.pinned);
+          const unpinnedEntries = orderedEntries.filter(
             (entry) => !entry.pinned
           );
           return [...pinnedEntries, ...unpinnedEntries];
@@ -145,19 +148,18 @@ export class Accounts implements Module {
         loadCodes(state: AccountsState, newCodes: OTPEntryInterface[]) {
           state.entries = newCodes;
         },
-        // Edit mode renames entries on every keystroke, which would re-sort
-        // the list under the cursor. Freezing snapshots the current order.
-        // Entries added while frozen aren't in the snapshot, so they sort
-        // first (their index is -1).
+        // Edit mode renames entries on every keystroke and adding an account
+        // re-sorts the list, either of which would move entries under the
+        // cursor. Freezing snapshots the current order for display. Entries
+        // added while frozen aren't in the snapshot, so they show first
+        // (their position in it is -1).
         setOrderFrozen(state: AccountsState, isFrozen: boolean) {
           state.frozenOrder = isFrozen
-            ? [...state.entries]
-                .sort(compareEntryNames)
-                .map((entry) => entry.hash)
+            ? state.entries.map((entry) => entry.hash)
             : null;
         },
         pinEntry(state: AccountsState, entry: OTPEntryInterface) {
-          state.entries[entry.index].pinned = !entry.pinned;
+          entry.pinned = !entry.pinned;
         },
         updateExport(
           state: AccountsState,
@@ -214,6 +216,7 @@ export class Accounts implements Module {
           entry: OTPEntryInterface
         ) => {
           state.state.entries.unshift(entry);
+          await storeEntriesSorted(state.state.entries);
           state.commit(
             "updateExport",
             await EntryStorage.getExport(state.state.entries)
@@ -599,6 +602,7 @@ export class Accounts implements Module {
             }
           }
 
+          await storeEntriesSorted(entries);
           state.commit("loadCodes", entries);
           state.commit("updateCodes");
           state.commit(
@@ -611,6 +615,19 @@ export class Accounts implements Module {
           });
           state.commit("initComplete");
           return;
+        },
+        // Run when leaving edit mode, once renames are done. Also refreshes
+        // the exports, which otherwise keep the names from before the edit.
+        sortEntries: async (state: ActionContext<AccountsState, object>) => {
+          await storeEntriesSorted(state.state.entries);
+          state.commit(
+            "updateExport",
+            await EntryStorage.getExport(state.state.entries)
+          );
+          state.commit("updateEncExport", {
+            entries: await EntryStorage.getExport(state.state.entries, true),
+            keys: await BrowserStorage.getKeys(),
+          });
         },
         clearFilter: (state: ActionContext<AccountsState, object>) => {
           state.commit("stopFilter");
@@ -694,24 +711,6 @@ export class Accounts implements Module {
     const otpEntries = await EntryStorage.get();
     return otpEntries;
   }
-}
-
-// Case-insensitive, with digits compared as numbers ("Site 2" before "Site 10")
-const nameCollator = new Intl.Collator(undefined, {
-  numeric: true,
-  sensitivity: "base",
-});
-
-// An issuer may end in "::host" for site matching. The popup hides that part,
-// so sort on the visible name only.
-function compareEntryNames(a: OTPEntryInterface, b: OTPEntryInterface) {
-  const issuerA = a.issuer.split("::")[0];
-  const issuerB = b.issuer.split("::")[0];
-
-  return (
-    nameCollator.compare(issuerA, issuerB) ||
-    nameCollator.compare(a.account, b.account)
-  );
 }
 
 async function genHash(value: string) {

@@ -62,7 +62,13 @@ async function init() {
 
   store.watch(
     (state) => (state as { style: StyleState }).style.style.isEditing,
-    (isEditing) => store.commit("accounts/setOrderFrozen", isEditing)
+    async (isEditing) => {
+      if (!isEditing) {
+        await store.dispatch("accounts/sortEntries");
+      }
+
+      store.commit("accounts/setOrderFrozen", isEditing);
+    }
   );
 
   // Render
