@@ -3,6 +3,7 @@ build
 chrome*
 firefox*
 edge*
+web-ext-artifacts
 dist
 .vscode
 .atom-build.yml
